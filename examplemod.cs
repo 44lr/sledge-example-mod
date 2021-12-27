@@ -1,155 +1,152 @@
-﻿using System.Numerics;
+﻿using SledgeLib; // use SledgeLib's namespace
+using System.Numerics; // use Numerics for Vectors
 
+/*
+ *  class that contains our init function
+ *  keep this in mind for when writing the mod's .info.json
+ */
 public class examplemod
 {
-    static bool m_GodModeEnabled = false;
+    // variables that will be used later in the mod
+    static bool m_GodEnabled = false;
     static bool m_NoclipEnabled = false;
 
     static bool m_ReduceSpeed = false;
     static bool m_IncreaseSpeed = false;
 
-    static Vector3 vPlayerPos = new Vector3(.0f, .0f, .0f);
+    static Vector3 m_NoclipExitSpeed; // speed that will be applied to the player once they stop using noclip
+    static Transform m_NoclipTransform; // transform that will store the camera's position while the player is noclipping
+    static float m_NoclipSpeed = .25f; // speed at which the player will fly
 
-    static Vector3 vNoclipExitSpeed = new Vector3(.0f, .0f, .0f);
-    static Vector3 vEmptyV3 = new Vector3(.0f, .0f, .0f);
-
-    static Transform tNoclipTransform = new Transform();
-
-    static float fNoclipSpeed = .25f;
-
-    // function that gets called every time the god mode key is pressed
-    static void ToggleGodMode()
-    {
-        m_GodModeEnabled = !m_GodModeEnabled;
-        if (m_GodModeEnabled)
-            SledgeLib.WriteLog("God mode enabled");
-        else
-            SledgeLib.WriteLog("God mode disabled");
-    }
-
-    // function that gets called every time the noclip key is pressed
+    /*
+     * these functions will be called every time the key is pressed, not released
+     */
     static void ToggleNoclip()
     {
         m_NoclipEnabled = !m_NoclipEnabled;
-        if (m_NoclipEnabled)
-        {
-            // store the original camera transform
-            tNoclipTransform = SledgeLib.Player.m_CameraTransform;
-            SledgeLib.WriteLog("Noclip enabled");
-        }
-        else
-        {
-            // apply the exit speed to the player
-            SledgeLib.Player.m_Velocity = vNoclipExitSpeed * 50;
-            SledgeLib.WriteLog("Noclip disabled");
-        }
-    }
-
-    // function that gets called every time the reduce speed key is pressed **or** released, and while the key is held
-    static void SetReduceSpeed(bool bKeyDown)
-    {
-        m_ReduceSpeed = bKeyDown;
-    }
-
-    // function that gets called every time the increase speed key is pressed **or** released, and while the key is held
-    static void SetIncreaseSpeed(bool bKeyDown)
-    {
-        m_IncreaseSpeed = bKeyDown;
-    }
-
-    // Function that gets called right before the game updates
-    static void OnPreUpdate()
-    {
-        // if god mode is enabled, constantly set the player's health to 1
-        if (m_GodModeEnabled)
-            SledgeLib.Player.m_Health = 1;
+        Log.General("Noclip {0}", m_NoclipEnabled ? "enabled" : "disabled");
 
         if (m_NoclipEnabled)
         {
-            // Set the player's velocity to 0 (to avoid taking fall damage)
-            SledgeLib.Player.m_Velocity = vEmptyV3;
+            m_NoclipTransform = Player.GetCameraTransform(); // store the camera's last transform
+        } else
+        {
+            Player.SetPosition(m_NoclipTransform.Position - new Vector3(0, 1.7f, 0)); // set the player's position to where the camera's position last was (minus the camera offset)
+            Player.SetVelocity(m_NoclipExitSpeed); // apply the exit velocity to the player
+        }
+    }
+    static void ToggleGod()
+    {
+        m_GodEnabled = !m_GodEnabled;
+        Log.General("God mode {0}", m_GodEnabled ? "enabled" : "disabled");
+    }
+    
+    /*
+     *  these functions will be called when the key they're bound to is pressed or released
+     *  bKeyDown will be true if the key was pressed, or false if it was released
+     *  (it'll also be called multiple times while it's pressed)
+     */
+    static void UpdateReduceSpeed(bool bKeyDown) { m_ReduceSpeed = bKeyDown;  }
+    static void UpdateIncreaseSpeed(bool bKeyDown) { m_IncreaseSpeed = bKeyDown; }
 
-            // store the camera rotation, since it'll be re-applied to the camera transform later
-            tNoclipTransform.Rotation = SledgeLib.Player.m_CameraTransform.Rotation;
+    /*
+     * this function will be called every time the player is done updating (camera position updates, health updates, etc)
+     */
+    static void OnPostPlayerUpdate()
+    {
+        // if god mode is enabled, constantly heal the player
+        if (m_GodEnabled)
+            Player.SetHealth(1);
 
-            // Read the input keys (the values change based on what key is pressed, W and S control the X axis, A and D control the Y axis)
-            Vector2 vInputKeys = SledgeLib.Player.m_MovementKeys;
+        if (m_NoclipEnabled)
+        {
+            // Set the player's velocity to 0 to avoid taking fall damage
+            Player.SetVelocity(new Vector3(0, 0, 0));
 
-            // Get the forward vector from the rotation (to move the player forwards and backwards)
+            // store the camera's rotation since we won't be modifying it and we'll need it for setting the transform later
+            m_NoclipTransform.Rotation = Player.GetCameraTransform().Rotation;
+
+            // read the player's movement input
+            Vector2 vInput = Player.GetMovementInput();
+
+            // calculate the forward vector to move the player forwards and backwards
             Vector3 vFwdVec;
-            vFwdVec.X = 2 * (tNoclipTransform.Rotation.X * tNoclipTransform.Rotation.Z + tNoclipTransform.Rotation.W * tNoclipTransform.Rotation.Y);
-            vFwdVec.Y = 2 * (tNoclipTransform.Rotation.Y * tNoclipTransform.Rotation.Z - tNoclipTransform.Rotation.W * tNoclipTransform.Rotation.X);
-            vFwdVec.Z = 1 - 2 * (tNoclipTransform.Rotation.X * tNoclipTransform.Rotation.X + tNoclipTransform.Rotation.Y * tNoclipTransform.Rotation.Y);
-            
-            // multiply the forward vector by the input (to determine whether to move forwards or backwards)
-            vFwdVec *= -vInputKeys.X;
-            // multiply the forward vector by the speed we set
-            vFwdVec *= fNoclipSpeed;
+            vFwdVec.X = 2 * (m_NoclipTransform.Rotation.X * m_NoclipTransform.Rotation.Z + m_NoclipTransform.Rotation.W * m_NoclipTransform.Rotation.Y);
+            vFwdVec.Y = 2 * (m_NoclipTransform.Rotation.Y * m_NoclipTransform.Rotation.Z - m_NoclipTransform.Rotation.W * m_NoclipTransform.Rotation.X);
+            vFwdVec.Z = 1 - 2 * (m_NoclipTransform.Rotation.X * m_NoclipTransform.Rotation.X + m_NoclipTransform.Rotation.Y * m_NoclipTransform.Rotation.Y);
 
-            // Get the side vector from the rotation (to move the player left and right)
+            // multiply the forward vector by the input (to determine whether to move forwards or backwards)
+            vFwdVec *= -vInput.X;
+            // multiply the forward vector by the speed we set
+            vFwdVec *= m_NoclipSpeed;
+
+            //Get the side vector from the rotation (to move the player left and right)
             Vector3 vSideVec;
-            vSideVec.X = 1 - 2 * (tNoclipTransform.Rotation.Y * tNoclipTransform.Rotation.Y + tNoclipTransform.Rotation.Z * tNoclipTransform.Rotation.Z);
-            vSideVec.Y = 2 * (tNoclipTransform.Rotation.X * tNoclipTransform.Rotation.Z + tNoclipTransform.Rotation.W * tNoclipTransform.Rotation.Z);
-            vSideVec.Z = 2 * (tNoclipTransform.Rotation.X * tNoclipTransform.Rotation.Z - tNoclipTransform.Rotation.W * tNoclipTransform.Rotation.Y);
+            vSideVec.X = 1 - 2 * (m_NoclipTransform.Rotation.Y * m_NoclipTransform.Rotation.Y + m_NoclipTransform.Rotation.Z * m_NoclipTransform.Rotation.Z);
+            vSideVec.Y = 2 * (m_NoclipTransform.Rotation.X * m_NoclipTransform.Rotation.Z + m_NoclipTransform.Rotation.W * m_NoclipTransform.Rotation.Z);
+            vSideVec.Z = 2 * (m_NoclipTransform.Rotation.X * m_NoclipTransform.Rotation.Z - m_NoclipTransform.Rotation.W * m_NoclipTransform.Rotation.Y);
 
             // multiply the side vector by the input (to determine whether to move left or right)
-            vSideVec *= vInputKeys.Y;
+            vSideVec *= vInput.Y;
             // multiply the side vector by the speed we set
-            vSideVec *= fNoclipSpeed;
+            vSideVec *= m_NoclipSpeed;
 
+            // if the reduce speed key is down, reduce the movement that will be applied
             if (m_ReduceSpeed)
-           {
+            {
                 vFwdVec *= 0.25f;
                 vSideVec *= 0.25f;
             }
 
+            // if the increase speed is down, multiply the movement that will be applied
             if (m_IncreaseSpeed)
             {
                 vFwdVec *= 2.5f;
                 vSideVec *= 2.5f;
             }
 
-            // calculate the exit speed (for when the player disables noclip)
-            vNoclipExitSpeed = vFwdVec + vSideVec;
+            m_NoclipExitSpeed = vFwdVec + vSideVec;
 
             // add the forward and side vectors to the final transform
-            tNoclipTransform.Position += vFwdVec;
-            tNoclipTransform.Position += vSideVec;
-
-            // set the player position to where our camera is (minus 1.7 which is the camera height)
-            vPlayerPos = tNoclipTransform.Position;
-            vPlayerPos.Y -= 1.7f;
-            SledgeLib.Player.m_Position = vPlayerPos;
+            m_NoclipTransform.Position += vFwdVec;
+            m_NoclipTransform.Position += vSideVec;
 
             // apply the transform to the camera
-            SledgeLib.Player.m_CameraTransform = tNoclipTransform;
+            Player.SetCameraTransform(m_NoclipTransform);
         }
     }
 
-    // Instantiate and store the delegate instances
-    // (so the GC doesn't collect them)
-    private static dBindCallback ToggleGodCallback      =   new dBindCallback(ToggleGodMode);
-    private static dBindCallback ToggleNoclipCallback   =   new dBindCallback(ToggleNoclip);
-    private static dAdvancedBindCallback ReduceSpeedCallback = new dAdvancedBindCallback(SetReduceSpeed);
-    private static dAdvancedBindCallback IncreaseSpeedCallback = new dAdvancedBindCallback(SetIncreaseSpeed);
-    private static dCallback PreUpdateCallback          =   new dCallback(OnPreUpdate);
+    /*
+     * always instantiate and keep around the callback instances
+     * otherwise the GC is going to collect them
+     */
+    private static dBindCallback ToggleNoclipCallbackFunc = new dBindCallback(ToggleNoclip);
+    private static dBindCallback ToggleGodCallbackFunc = new dBindCallback(ToggleGod);
+    private static dAdvancedBindCallback ReducePlayerSpeedCallbackFunc = new dAdvancedBindCallback(UpdateReduceSpeed);
+    private static dAdvancedBindCallback IncreasePlayerSpeedCallbackFunc = new dAdvancedBindCallback(UpdateIncreaseSpeed);
 
+    private static dCallback PostPlayerUpdateCallbackFunc = new dCallback(OnPostPlayerUpdate);
+
+    /*
+     * function that initializes our mod
+     * it must always be a public static void function, otherwise the mod won't be loaded
+     * it can be named whatever you want though, as long as you define it on the mod's info.json
+     */
     public static void Init()
     {
-        // register the normal binds
-        // these binds only get called once the key is down
-        CBind GodModeBind = new CBind(EKeyCode.VK_HOME, ToggleGodCallback);
-        CBind NoclipBind = new CBind(EKeyCode.VK_N, ToggleNoclipCallback);
+        /*
+         * while registering binds and callbacks, it's very important to pass an instances of dBindCallback/dCallback/dAdvancedCallback that are
+         * kept in the scope / wont be garbage collected, otherwise it'll lead to errors
+         */
+        CBind NoclipBind = new CBind(EKeyCode.VK_N, ToggleNoclipCallbackFunc);
+        CBind GodBind = new CBind(EKeyCode.VK_INSERT, ToggleGodCallbackFunc);
 
-        // register the advanced binds
-        // these binds get called when the key is pressed, when the key is released, and while it's held
-        CAdvancedBind ReduceSpeedBind = new CAdvancedBind(EKeyCode.VK_CONTROL, ReduceSpeedCallback);
-        CAdvancedBind IncreaseSpeedBind = new CAdvancedBind(EKeyCode.VK_SHIFT, IncreaseSpeedCallback);
+        CBind ReduceSpeedBind = new CBind(EKeyCode.VK_CONTROL, ReducePlayerSpeedCallbackFunc);
+        CBind IncreaseSpeedBind = new CBind(EKeyCode.VK_SHIFT, IncreasePlayerSpeedCallbackFunc);
 
-        // register the callback
-        CCallback PostCallback = new CCallback(ECallbackType.PostPlayerUpdate, PreUpdateCallback);
+        CCallback PostPlayerUpdateCallback = new CCallback(ECallbackType.PostPlayerUpdate, PostPlayerUpdateCallbackFunc);
 
-        SledgeLib.WriteLog("sledge example mod succesfully loaded");
-        SledgeLib.WriteLog("controls: \n\t-n: toggle noclip\n\t-insert: toggle godmode\n\t-ctrl: slow down noclip\n\t-shift: speed up noclip");
+        Log.General("examplemod successfully loaded");
+        Log.General("controls: \n\t-insert: toggle godmode\n\t-n: toggle noclip\n\t-ctrl: slow down noclip\n\t-shift: speed up noclip");
     }
 }

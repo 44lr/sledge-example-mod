@@ -41,6 +41,7 @@ public class examplemod
         Log.General("God mode {0}", m_GodEnabled ? "enabled" : "disabled");
     }
     
+
     /*
      *  these functions will be called when the key they're bound to is pressed or released
      *  bKeyDown will be true if the key was pressed, or false if it was released
@@ -54,6 +55,10 @@ public class examplemod
      */
     static void OnPostPlayerUpdate()
     {
+        // if the user is in the menu / doing osmething else, don't run this
+        if (!Game.IsPlaying())
+            return;
+
         // if god mode is enabled, constantly heal the player
         if (m_GodEnabled)
             Player.SetHealth(1);

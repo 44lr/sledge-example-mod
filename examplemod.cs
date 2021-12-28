@@ -32,7 +32,7 @@ public class examplemod
         } else
         {
             Player.SetPosition(m_NoclipTransform.Position - new Vector3(0, 1.7f, 0)); // set the player's position to where the camera's position last was (minus the camera offset)
-            Player.SetVelocity(m_NoclipExitSpeed); // apply the exit velocity to the player
+            Player.SetVelocity(m_NoclipExitSpeed * 50.0f); // apply the exit velocity to the player
         }
     }
     static void ToggleGod()

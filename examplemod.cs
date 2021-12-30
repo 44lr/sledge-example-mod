@@ -35,12 +35,12 @@ public class examplemod
             Player.SetVelocity(m_NoclipExitSpeed * 50.0f); // apply the exit velocity to the player
         }
     }
+
     static void ToggleGod()
     {
         m_GodEnabled = !m_GodEnabled;
         Log.General("God mode {0}", m_GodEnabled ? "enabled" : "disabled");
     }
-    
 
     /*
      *  these functions will be called when the key they're bound to is pressed or released
@@ -133,25 +133,75 @@ public class examplemod
     private static dCallback PostPlayerUpdateCallbackFunc = new dCallback(OnPostPlayerUpdate);
 
     /*
-     * function that initializes our mod
+     * while registering binds and callbacks, it's very important to pass an instances of dBindCallback/dCallback/dAdvancedCallback that are
+     * kept in the scope / wont be garbage collected, otherwise it'll lead to errors
+     */
+    private static CBind? NoclipBind;
+    private static CBind? GodBind;
+
+    private static CBind? ReduceSpeedBind;
+    private static CBind? IncreaseSpeedBind;
+
+    private static CCallback? PostPlayerUpdateCallback;
+
+    /*
+     * function that starts our mod
      * it must always be a public static void function, otherwise the mod won't be loaded
      * it can be named whatever you want though, as long as you define it on the mod's info.json
+     * but it'll also detect the following names automatically:
+     * "Init", "Start", "InitMod", "LoadMod", "StartMod", "ModInit" and "ModStart"
      */
     public static void Init()
     {
-        /*
-         * while registering binds and callbacks, it's very important to pass an instances of dBindCallback/dCallback/dAdvancedCallback that are
-         * kept in the scope / wont be garbage collected, otherwise it'll lead to errors
-         */
-        CBind NoclipBind = new CBind(EKeyCode.VK_N, ToggleNoclipCallbackFunc);
-        CBind GodBind = new CBind(EKeyCode.VK_INSERT, ToggleGodCallbackFunc);
+        NoclipBind = new CBind(EKeyCode.VK_N, ToggleNoclipCallbackFunc);
+        GodBind = new CBind(EKeyCode.VK_INSERT, ToggleGodCallbackFunc);
+        ReduceSpeedBind = new CBind(EKeyCode.VK_CONTROL, ReducePlayerSpeedCallbackFunc);
+        IncreaseSpeedBind = new CBind(EKeyCode.VK_SHIFT, IncreasePlayerSpeedCallbackFunc);
+        PostPlayerUpdateCallback = new CCallback(ECallbackType.PostPlayerUpdate, PostPlayerUpdateCallbackFunc);
 
-        CBind ReduceSpeedBind = new CBind(EKeyCode.VK_CONTROL, ReducePlayerSpeedCallbackFunc);
-        CBind IncreaseSpeedBind = new CBind(EKeyCode.VK_SHIFT, IncreasePlayerSpeedCallbackFunc);
-
-        CCallback PostPlayerUpdateCallback = new CCallback(ECallbackType.PostPlayerUpdate, PostPlayerUpdateCallbackFunc);
-
-        Log.General("examplemod successfully loaded");
+        Log.General("example mod successfully loaded");
         Log.General("controls: \n\t-insert: toggle godmode\n\t-n: toggle noclip\n\t-ctrl: slow down noclip\n\t-shift: speed up noclip");
+    }
+
+    /*
+     * function that stops our mod
+     * it must always be a public static void function, otherwise it'll error while unloading
+    * it can be named whatever you want though, as long as you define it on the mod's info.json
+     * but it'll also detect the following names automatically:
+     * "Shutdown", "Stop", "Disable", "ShutdownMod", "StopMod", "DisableMod", "ModShutdown"
+     */
+    public static void Shutdown()
+    {
+        if (NoclipBind != null)
+        {
+            NoclipBind.Unregister();
+            NoclipBind = null;
+        }
+
+        if (GodBind != null)
+        {
+            GodBind.Unregister();
+            GodBind = null;
+        }
+
+        if (ReduceSpeedBind != null)
+        {
+            ReduceSpeedBind.Unregister();
+            ReduceSpeedBind = null;
+        }
+
+        if (IncreaseSpeedBind != null)
+        {
+            IncreaseSpeedBind.Unregister();
+            IncreaseSpeedBind = null;
+        }
+
+        if (PostPlayerUpdateCallback != null)
+        {
+            PostPlayerUpdateCallback.Unregister();
+            PostPlayerUpdateCallback = null;
+        }
+
+        Log.General("example mod succesfully unloaded");
     }
 }

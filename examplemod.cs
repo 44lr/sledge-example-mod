@@ -2,7 +2,7 @@
 using System.Numerics; // use Numerics for Vectors
 
 /*
- *  class that contains our init function
+ *  class that contains the mod's init function
  *  keep this in mind for when writing the mod's .info.json
  */
 public class examplemod
@@ -52,7 +52,7 @@ public class examplemod
     /*
      * this function will be called every time the player is done updating (camera position updates, health updates, etc)
      */
-    private static dBindCallback OnPostPlayerUpdate = new dBindCallback(() =>
+    private static dCallback OnPostPlayerUpdate = new dCallback(() =>
     {
         // if the user is in the menu / doing osmething else, don't run this
         if (!Game.IsPlaying())
@@ -133,7 +133,7 @@ public class examplemod
     private static CCallback? PostPlayerUpdateCallback;
 
     /*
-     * function that starts our mod
+     * function that starts the mod
      * it must always be a public static void function, otherwise the mod won't be loaded
      * it can be named whatever you want though, as long as you define it on the mod's info.json
      * but it'll also detect the following names automatically:
@@ -152,9 +152,9 @@ public class examplemod
     }
 
     /*
-     * function that stops our mod
+     * function that stops the mod
      * it must always be a public static void function, otherwise it'll error while unloading
-    * it can be named whatever you want though, as long as you define it on the mod's info.json
+     * it can be named whatever you want though, as long as you define it on the mod's info.json
      * but it'll also detect the following names automatically:
      * "Shutdown", "Stop", "Disable", "ShutdownMod", "StopMod", "DisableMod", "ModShutdown"
      */
@@ -191,5 +191,15 @@ public class examplemod
         }
 
         Log.General("example mod succesfully unloaded");
+    }
+
+    /*
+     * function that gets called every time the mod is reloaded
+     * is this is defined, this function will be called instead of init
+     */
+    public static void Reload()
+    {
+        Init();
+        Log.General("example mod succesfully reloaded");
     }
 }

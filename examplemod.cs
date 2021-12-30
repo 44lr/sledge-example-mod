@@ -21,39 +21,38 @@ public class examplemod
     /*
      * these functions will be called every time the key is pressed, not released
      */
-    static void ToggleNoclip()
-    {
+    private static dBindCallback ToggleNoclip = new dBindCallback(() => {
         m_NoclipEnabled = !m_NoclipEnabled;
         Log.General("Noclip {0}", m_NoclipEnabled ? "enabled" : "disabled");
 
         if (m_NoclipEnabled)
         {
             m_NoclipTransform = Player.GetCameraTransform(); // store the camera's last transform
-        } else
+        }
+        else
         {
             Player.SetPosition(m_NoclipTransform.Position - new Vector3(0, 1.7f, 0)); // set the player's position to where the camera's position last was (minus the camera offset)
             Player.SetVelocity(m_NoclipExitSpeed * 50.0f); // apply the exit velocity to the player
         }
-    }
+    });
 
-    static void ToggleGod()
-    {
+    private static dBindCallback ToggleGod = new dBindCallback(() => {
         m_GodEnabled = !m_GodEnabled;
         Log.General("God mode {0}", m_GodEnabled ? "enabled" : "disabled");
-    }
+    });
 
     /*
      *  these functions will be called when the key they're bound to is pressed or released
      *  bKeyDown will be true if the key was pressed, or false if it was released
      *  (it'll also be called multiple times while it's pressed)
      */
-    static void UpdateReduceSpeed(bool bKeyDown) { m_ReduceSpeed = bKeyDown;  }
-    static void UpdateIncreaseSpeed(bool bKeyDown) { m_IncreaseSpeed = bKeyDown; }
+    private static dAdvancedBindCallback ReduceSpeed = new dAdvancedBindCallback((bool bKeyDown) => { m_ReduceSpeed = bKeyDown; });
+    private static dAdvancedBindCallback IncreaseSpeed = new dAdvancedBindCallback((bool bKeyDown) => { m_IncreaseSpeed = bKeyDown; });
 
     /*
      * this function will be called every time the player is done updating (camera position updates, health updates, etc)
      */
-    static void OnPostPlayerUpdate()
+    private static dBindCallback OnPostPlayerUpdate = new dBindCallback(() =>
     {
         // if the user is in the menu / doing osmething else, don't run this
         if (!Game.IsPlaying())
@@ -119,18 +118,7 @@ public class examplemod
             // apply the transform to the camera
             Player.SetCameraTransform(m_NoclipTransform);
         }
-    }
-
-    /*
-     * always instantiate and keep around the callback instances
-     * otherwise the GC is going to collect them
-     */
-    private static dBindCallback ToggleNoclipCallbackFunc = new dBindCallback(ToggleNoclip);
-    private static dBindCallback ToggleGodCallbackFunc = new dBindCallback(ToggleGod);
-    private static dAdvancedBindCallback ReducePlayerSpeedCallbackFunc = new dAdvancedBindCallback(UpdateReduceSpeed);
-    private static dAdvancedBindCallback IncreasePlayerSpeedCallbackFunc = new dAdvancedBindCallback(UpdateIncreaseSpeed);
-
-    private static dCallback PostPlayerUpdateCallbackFunc = new dCallback(OnPostPlayerUpdate);
+    });
 
     /*
      * while registering binds and callbacks, it's very important to pass an instances of dBindCallback/dCallback/dAdvancedCallback that are
@@ -153,11 +141,11 @@ public class examplemod
      */
     public static void Init()
     {
-        NoclipBind = new CBind(EKeyCode.VK_N, ToggleNoclipCallbackFunc);
-        GodBind = new CBind(EKeyCode.VK_INSERT, ToggleGodCallbackFunc);
-        ReduceSpeedBind = new CBind(EKeyCode.VK_CONTROL, ReducePlayerSpeedCallbackFunc);
-        IncreaseSpeedBind = new CBind(EKeyCode.VK_SHIFT, IncreasePlayerSpeedCallbackFunc);
-        PostPlayerUpdateCallback = new CCallback(ECallbackType.PostPlayerUpdate, PostPlayerUpdateCallbackFunc);
+        NoclipBind = new CBind(EKeyCode.VK_N, ToggleNoclip);
+        GodBind = new CBind(EKeyCode.VK_INSERT, ToggleGod);
+        ReduceSpeedBind = new CBind(EKeyCode.VK_CONTROL, ReduceSpeed);
+        IncreaseSpeedBind = new CBind(EKeyCode.VK_SHIFT, IncreaseSpeed);
+        PostPlayerUpdateCallback = new CCallback(ECallbackType.PostPlayerUpdate, OnPostPlayerUpdate);
 
         Log.General("example mod successfully loaded");
         Log.General("controls: \n\t-insert: toggle godmode\n\t-n: toggle noclip\n\t-ctrl: slow down noclip\n\t-shift: speed up noclip");

@@ -71,7 +71,7 @@ public class examplemod
             m_NoclipTransform.Rotation = Player.GetCameraTransform().Rotation;
 
             // read the player's movement input
-            Vector2 vInput = Player.GetMovementInput();
+            Vector2 vInput = Player.GetMovement();
 
             // calculate the forward vector to move the player forwards and backwards
             Vector3 vFwdVec;
